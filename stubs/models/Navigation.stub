@@ -1,0 +1,65 @@
+<?php
+
+namespace App\Models;
+
+use Illuminate\Support\Facades\Cache;
+use Lavamake\Lavamake\Support\BreadcrumbsTrait;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
+
+class Navigation extends Model
+{
+    use HasFactory, SoftDeletes, BreadcrumbsTrait;
+
+    /**
+     * @var string[]
+     */
+    protected $fillable = [
+        'id', '{{foreign_key}}', 'title', 'pid', 'en_title', 'type', 'link', 'sort', 'status'
+    ];
+
+    public function posts()
+    {
+        return $this->hasMany(Post::class);
+    }
+
+    /**
+     * child
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\HasMany
+     *
+     * by Menlain
+     * 2022/1/18 - 4:03 AM
+     */
+    public function child()
+    {
+        return $this->hasMany(get_class($this), 'pid', 'id');
+    }
+
+    /**
+     * children
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\HasMany
+     *
+     * by Menlain
+     * 2022/1/18 - 4:03 AM
+     */
+    public function children()
+    {
+        return $this->child()->with('children');
+    }
+
+    /**
+     * path
+     *
+     * @return array
+     *
+     * by Menlain
+     * 2022/1/18 - 4:03 AM
+     */
+    public function path()
+    {
+        return $this->getBreadcrumb($this->id);
+    }
+}

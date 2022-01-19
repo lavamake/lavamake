@@ -1,0 +1,85 @@
+<?php
+
+namespace App\Models;
+
+use Illuminate\Support\Facades\Cache;
+use Lavamake\Lavamake\Support\BreadcrumbsTrait;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
+use Lavamake\Lavamake\Support\Consts;
+
+class Article extends Model
+{
+    use HasFactory, SoftDeletes, BreadcrumbsTrait;
+
+//    protected $appends = [
+//        'cache_path'
+//    ];
+
+    protected $fillable = [
+        '{{foreign_key}}',
+        'navigation_id',
+        'unicode',
+        'title',
+        'content',
+        'thumb',
+        'description',
+        'keywords',
+        'author',
+        'status',
+        'published_at'
+    ];
+
+    protected $hidden = [
+        "deleted_at",
+        '{{foreign_key}}',
+        'navigation_id',
+        'id'
+    ];
+
+    public function navigation()
+    {
+        return $this->belongsTo(Navigation::class);
+    }
+
+    /**
+     * breadcrumb path
+     *
+     * @return array
+     *
+     * by Menlain
+     * 2022/1/18 - 4:03 AM
+     */
+    public function path()
+    {
+        return $this->getBreadcrumb($this->navigation_id);
+    }
+
+    /**
+     * post page meta
+     *
+     * @return array
+     *
+     * by Menlain
+     * 2022/1/18 - 4:03 AM
+     */
+    public function meta()
+    {
+        return [
+            'title' => $this->title,
+            'keywords' => $this->keywords,
+            'description' => $this->description,
+        ];
+    }
+
+    public function isPublished():bool
+    {
+        return $this->status === Consts::PUBLISHED;
+    }
+
+    public function isNotPublished():bool
+    {
+        return ! $this->isPublished();
+    }
+}

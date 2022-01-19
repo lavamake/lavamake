@@ -1,0 +1,47 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+class CreateArticlesTable extends Migration
+{
+    /**
+     * Run the migrations.
+     *
+     * @return void
+     */
+    public function up()
+    {
+        Schema::create('articles', function (Blueprint $table) {
+            $table->id();
+            $table->string("unicode", 18)->index('post_unicode')->comment("唯一编号");
+            $table->foreignId("{{user_id}}")->index('{{user_id}}');
+            $table->string("title")->index('post_title');
+            $table->string("keywords")->nullable()->default(null)->comment("文章关键词");
+            $table->string("description")->nullable()->default(null)->comment("文章简介");
+            $table->string("thumb")->nullable()->default(null)->comment("文章封面");
+            $table->foreignId("navigation_id");
+            $table->string("author")->nullable()->default(null);
+            $table->longText("content");
+            $table->enum("status",['draft','published','hidden'])->default('draft')->comment("状态");
+            $table->timestamp("published_at")->nullable()->default(null)->comment("发布时间");
+            $table->integer("view_number")->default(0)->unsigned()->comment("浏览次数");
+            $table->timestamps();
+            $table->softDeletes();
+
+            $table->unique(['{{user_id}}','unicode'], 'user_post_unicode_unique');
+            $table->index(['{{user_id}}','unicode'],'user_post_unicode_index');
+        });
+    }
+
+    /**
+     * Reverse the migrations.
+     *
+     * @return void
+     */
+    public function down()
+    {
+        Schema::dropIfExists('articles');
+    }
+}

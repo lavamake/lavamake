@@ -1,0 +1,47 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+class CreateNavigationsTable extends Migration
+{
+    /**
+     * Run the migrations.
+     *
+     * @return void
+     */
+    public function up()
+    {
+        // 当分类
+        Schema::create('navigations', function (Blueprint $table) {
+            $table->id();
+            $table->string("unicode", 18)->index('unicode')->comment("user下唯一编码");
+            $table->foreignId("{{user_id}}")->index('{{user_id}}');
+            $table->foreignId("pid")->unsigned()->default(0)->comment("父级菜单");
+            $table->string("title")->comment("菜单名称");
+            $table->string("en_title")->nullable()->default(null)->comment("菜单英文名称");
+            $table->enum('type',['category','link','post'])->default('category')->comment("菜单类型");
+            $table->string("link")->default(null)->nullable()->comment("链接地址");
+            $table->integer("sort")->default(0)->comment("排序");
+            $table->enum("status",['normal','hidden'])->default('hidden')->comment("显示，隐藏");
+            $table->integer("post_number")->unsigned()->default(0)->comment("文章数量");
+            $table->string('path')->nullable()->default(null)->comment('路径');
+            $table->softDeletes();
+            $table->timestamps();
+
+            $table->unique(['unicode', '{{user_id}}'], 'user_unicode_unique');
+            $table->index(['unicode', '{{user_id}}'], 'user_unicode_index');
+        });
+    }
+
+    /**
+     * Reverse the migrations.
+     *
+     * @return void
+     */
+    public function down()
+    {
+        Schema::dropIfExists('navigations');
+    }
+}
