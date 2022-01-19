@@ -1,20 +1,39 @@
 {
     "name": "lavamake/lavamake",
-    "description": "lavamake cms",
+    "description": "lavamake cms core",
+    "keywords": [
+        "laravel",
+        "lavamake",
+        "cms"
+    ],
     "authors": [
         {
             "name": "lavamake",
             "email": "maker68@163.com"
         }
     ],
-    "require": {},
+    "license": "MIT",
+    "require": {
+        "php": ">=7.2",
+        "laravel/framework": "^8.0"
+    },
     "autoload": {
-        "classmap": [
-            "database"
-        ],
         "psr-4": {
-            "App\\": "app/",
-            "Lavamake\\Lavamake\\": "packages/lavamake/lavamake/src/"
+            "Lavamake\\Lavamake\\": "src/"
+        }
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true,
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Lavamake\\Lavamake\\Providers\\LavamakeServiceProvider"
+            ],
+            "aliases": {
+                "ArticleManage": "Lavamake\\Lavamake\\Facades\\ArticleManage",
+                "LavaArticle": "Lavamake\\Lavamake\\Facades\\LavaArticleWeb",
+                "LavaNav": "Lavamake\\Lavamake\\Facades\\LavaNavWeb"
+            }
         }
     }
 }
