@@ -3,14 +3,14 @@
 namespace App\Models;
 
 use Illuminate\Support\Facades\Cache;
-use Lavamake\Lavamake\Support\Traits\BreadcrumbsTrait;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Lavamake\Lavamake\Facades\WebNav;
 
 class Navigation extends Model
 {
-    use HasFactory, SoftDeletes, BreadcrumbsTrait;
+    use HasFactory, SoftDeletes;
 
     /**
      * @var string[]
@@ -60,6 +60,6 @@ class Navigation extends Model
      */
     public function path()
     {
-        return $this->getBreadcrumb($this->id);
+        return WebNav::breadcrumbFull($this->id);
     }
 }
