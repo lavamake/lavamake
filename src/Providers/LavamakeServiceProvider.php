@@ -2,11 +2,18 @@
 
 namespace Lavamake\Lavamake\Providers;
 
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
+use Lavamake\Lavamake\Article\ArticleForManage;
+use Lavamake\Lavamake\Article\ArticleForWeb;
+use Lavamake\Lavamake\Config\Config;
+use Lavamake\Lavamake\Config\ConfigInterface;
 use Lavamake\Lavamake\Console\LavamakeInstallCommand;
-use Lavamake\Lavamake\Support\Manage\Article\ManageArticle;
-use Lavamake\Lavamake\Support\Web\Navigation\NavService;
-use Lavamake\Lavamake\Support\Web\Article\WebArticle;
+use Lavamake\Lavamake\Navigation\NavigationForManage;
+use Lavamake\Lavamake\Navigation\NavigationForWeb;
+use Lavamake\Lavamake\Policies\ArticlePolicy;
+use Lavamake\Lavamake\Policies\NavigationPolicy;
+use Lavamake\Lavamake\Utils\Consts;
 
 class LavamakeServiceProvider extends ServiceProvider
 {
@@ -17,46 +24,101 @@ class LavamakeServiceProvider extends ServiceProvider
      */
     public function boot()
     {
-
         $this->publishes([$this->getConfigSource() => config_path('lavamake.php')], 'config');
     }
 
     /**
-     * Register the service provider.
+     * register
      *
      * @return void
-     *
-     * by Menlain
-     * 2022/1/18 - 4:01 AM
      */
     public function register()
     {
-
-        $this->mergeConfigFrom($this->getConfigSource(), 'lavamake');
+        $this->mergeConfigFrom($this->getConfigSource(), Consts::CONFIG_LAVAMAKE);
+        $this->registerAlias();
+        $this->registerConfig();
+        $this->registerArticle();
+        $this->registerNavigation();
+        $this->registerPolicies();
 
         $this->registerLavamakeCommand();
         $this->commands('lavamake.lavamake.install');
+    }
 
-        $this->registerAlias();
+    protected function registerPolicies()
+    {
+        foreach ($this->policies() as $key => $policy) {
+            Gate::policy($key, $policy);
+        }
+    }
 
-        $this->app->singleton('lavamake.lavamake.article.manage', function ($app) {
-            return new ManageArticle($app['config'], $app['router']->getCurrentRequest());
-        });
+    protected function policies()
+    {
+        $articleModel = config("lavamake.models.article");
+        $navigationModel = config("lavamake.models.navigation");
 
-        $this->app->singleton('lavamake.lavamake.article.web', function ($app) {
-            return new WebArticle($app['config'], $app['router']->getCurrentRequest(), $app['events']);
-        });
-
-        $this->app->singleton('lavamake.lavamake.nav.web', function ($app) {
-            return new NavService($app['config'], $app['router']->getCurrentRequest());
-        });
+        return [
+            $articleModel => ArticlePolicy::class,
+            $navigationModel => NavigationPolicy::class
+        ];
     }
 
     protected function registerAlias()
     {
-        $this->app->alias('lavamake.lavamake.article.manage', ManageArticle::class);
-        $this->app->alias('lavamake.lavamake.article.web', WebArticle::class);
-        $this->app->alias('lavamake.lavamake.nav.web', NavService::class);
+        $this->app->alias('lavamake.lavamake.config', ConfigInterface::class);
+        $this->app->alias('lavamake.lavamake.article.manage', ArticleForManage::class);
+        $this->app->alias('lavamake.lavamake.article.web', ArticleForWeb::class);
+    }
+
+    protected function registerArticle()
+    {
+        $this->app->singleton('lavamake.lavamake.models.article', function ($app) {
+            return $this->getConfigInstance('models.article');
+        });
+        $this->app->singleton('lavamake.lavamake.article.manage', function ($app) {
+            return new ArticleForManage(
+                $app['lavamake.lavamake.models.article'],
+                $app['lavamake.lavamake.config'],
+                $app['router']->getCurrentRequest()
+            );
+        });
+        $this->app->singleton('lavamake.lavamake.article.web', function ($app) {
+            return new ArticleForWeb(
+                $app['lavamake.lavamake.models.article'],
+                $app['lavamake.lavamake.config'],
+                $app['router']->getCurrentRequest()
+            );
+        });
+    }
+
+    protected function registerNavigation()
+    {
+        $this->app->singleton('lavamake.lavamake.models.navigation', function ($app) {
+            return $this->getConfigInstance('models.navigation');
+        });
+        $this->app->singleton('lavamake.lavamake.nav.web', function ($app) {
+            return new NavigationForWeb(
+                $app['lavamake.lavamake.models.navigation'],
+                $app['lavamake.lavamake.models.article'],
+                $app['lavamake.lavamake.config'],
+                $app['router']->getCurrentRequest()
+            );
+        });
+        $this->app->singleton('lavamake.lavamake.nav.manage', function ($app) {
+            return new NavigationForManage(
+                $app['lavamake.lavamake.models.navigation'],
+                $app['lavamake.lavamake.models.article'],
+                $app['lavamake.lavamake.config'],
+                $app['router']->getCurrentRequest()
+            );
+        });
+    }
+
+    public function registerConfig()
+    {
+        $this->app->singleton('lavamake.lavamake.config', function ($app) {
+            return new Config($app['config']);
+        });
     }
 
     /**
@@ -74,5 +136,36 @@ class LavamakeServiceProvider extends ServiceProvider
     protected function getConfigSource()
     {
         return realpath(__DIR__.'/../../config/config.php');
+    }
+
+    /**
+     * Helper to get the config values.
+     *
+     * @param  string  $key
+     * @param  string  $default
+     *
+     * @return mixed
+     */
+    protected function config($key, $default = null)
+    {
+        return config("lavamake.$key", $default);
+    }
+
+    /**
+     * Get an instantiable configuration instance.
+     *
+     * @param  string  $key
+     *
+     * @return mixed
+     */
+    protected function getConfigInstance($key)
+    {
+        $instance = $this->config($key);
+
+        if (is_string($instance)) {
+            return $this->app->make($instance);
+        }
+
+        return $instance;
     }
 }

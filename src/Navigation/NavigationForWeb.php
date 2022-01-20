@@ -1,22 +1,12 @@
 <?php
 
-namespace Lavamake\Lavamake\Support\Web\Navigation;
+namespace Lavamake\Lavamake\Navigation;
 
-use Illuminate\Config\Repository;
-use Illuminate\Http\Request;
-use App\Models\Navigation;
-use App\Models\Article;
-use Lavamake\Lavamake\Support\Consts;
-use Lavamake\Lavamake\Support\Web\AbstractBaseService;
+use Lavamake\Lavamake\Utils\Consts;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
-class NavService extends AbstractBaseService
+class NavigationForWeb extends NavigationAbstract
 {
-    public function __construct(Repository $config, Request $request)
-    {
-        parent::__construct($config, $request);
-    }
-
     /**
      * renderRoot
      *
@@ -24,9 +14,9 @@ class NavService extends AbstractBaseService
      *
      * @return mixed
      */
-    public function renderRoot($user_id = 0)
+    public function renderNavRoot($user_id = 0)
     {
-        return $this->render(0,true,$user_id);
+        return $this->renderNavs(0,true,$user_id);
     }
 
     /**
@@ -36,20 +26,21 @@ class NavService extends AbstractBaseService
      *
      * @return string
      */
-    public function renderRootWithHtml($user_id = 0)
+    public function renderNavRootWithHtml($user_id = 0)
     {
         $unicode = $this->request->route('unicode');
-        $navigation_id = Navigation::where([
-            "unicode" => $unicode,
-            $this->foreignKey() => $user_id
-        ])->value('id');
 
+        $condition = $this->condition([
+            "unicode" => $unicode,
+        ], $user_id);
+
+        $navigation_id = $this->navigation->where($condition)->value('id');
         $breadcrumb = [];
         if ($navigation_id) {
             $breadcrumb = $this->breadcrumb($navigation_id, []);
         }
 
-        $navs = $this->renderRoot($user_id);
+        $navs = $this->renderNavRoot($user_id);
         return $this->navigationDeep($navs , $breadcrumb);
     }
 
@@ -61,18 +52,50 @@ class NavService extends AbstractBaseService
      *
      * @return array
      */
-    public function breadcrumb($lastone_id, $tree = [])
+    private function breadcrumb($lastone_id, $tree = [])
     {
         if ($lastone_id === 0) {
             array_unshift($tree, $lastone_id);
             return $tree;
         }else {
-            $navigation = Navigation::where([
+            $navigation = $this->navigation->where([
                 "id" => $lastone_id
             ])->first();
 
             array_unshift($tree, $navigation->id);
             return $this->breadcrumb($navigation->pid, $tree);
+        }
+    }
+
+    /**
+     * breadcrumb
+     *
+     * @param $lastone_id
+     * @param $tree
+     *
+     * @return array
+     */
+    public function breadcrumbFull($lastone_id, $tree = [])
+    {
+        if ($lastone_id == 0) {
+            $item = [
+                'title' => '首页',
+                'path' => url('/')
+            ];
+            array_unshift($tree, $item);
+            return $tree;
+        }else {
+            $condition = [
+                "id" => $lastone_id
+            ];
+            $navigation = $this->navigation->where($condition)->first();
+
+            $item = [
+                'title' => $navigation->title,
+                'path' => url('/cat',['unicode'=>$navigation->unicode])
+            ];
+            array_unshift($tree, $item);
+            return $this->breadcrumbFull($navigation->pid, $tree);
         }
     }
 
@@ -84,9 +107,9 @@ class NavService extends AbstractBaseService
      *
      * @return mixed
      */
-    public function renderChild($pid = 0, $user_id = 0)
+    public function renderNavChild($pid = 0, $user_id = 0)
     {
-        return $this->render($pid, false, $user_id);
+        return $this->renderNavs($pid, false, $user_id);
     }
 
     /**
@@ -98,20 +121,17 @@ class NavService extends AbstractBaseService
      *
      * @return mixed
      */
-    public function render($pid = 0, $with_child = false, $user_id = 0)
+    public function renderNavs($pid = 0, $with_child = false, $user_id = 0)
     {
+        $condition = $this->condition([
+            'status' => Consts::NORMAL,
+            'pid' => $pid
+        ], $user_id);
+
         if ($with_child) {
-            $navigations = Navigation::where([
-                $this->foreignKey() => $user_id,
-                'status' => 'normal',
-                'pid' => $pid
-            ])->with('children')->get();
+            $navigations = $this->navigation->where($condition)->with('children')->get();
         }else{
-            $navigations = Navigation::where([
-                $this->foreignKey() => $user_id,
-                'status' => 'normal',
-                'pid' => $pid
-            ])->get();
+            $navigations = $this->navigation->where($condition)->get();
         }
         return $navigations;
     }
@@ -122,19 +142,15 @@ class NavService extends AbstractBaseService
      * @param $unicode
      * @param $user_id
      *
-     * @return $this
-     *
-     * by Menlain
-     * 2022/1/18 - 6:42 PM
+     * @return mixed
      */
     public function navigation($unicode, $user_id = 0)
     {
         try{
-            $navigation = Navigation::where([
+            $navigation = $this->navigation->where($this->condition([
                 "unicode" => $unicode,
-                $this->foreignKey() => $user_id,
-                "status" => 'normal'
-            ])->firstOrFail();
+                "status" => Consts::NORMAL
+            ], $user_id))->firstOrFail();
         }catch (\Exception $e){
             throw new NotFoundHttpException();
         }
@@ -142,13 +158,14 @@ class NavService extends AbstractBaseService
         return $navigation;
     }
 
-    public function articles($navigation_id, $page = 1, $limit = 0, $user_id = 0)
+    public function navArticles($navigation_id, $page = 1, $limit = 0, $user_id = 0)
     {
-        $articles = Article::where([
-            "navigation_id" => $navigation_id,
-            "status" => Consts::PUBLISHED,
-            $this->foreignKey() => $user_id
-        ])->orderBy('published_at','desc')->paginate($limit,['*'],'page',$page);
+        $articles = $this->article->where(
+            $this->condition([
+                "navigation_id" => $navigation_id,
+                "status" => Consts::PUBLISHED
+            ], $user_id)
+        )->orderBy('published_at','desc')->paginate($limit,['*'],'page',$page);
 
         return $articles;
     }
@@ -194,18 +211,17 @@ class NavService extends AbstractBaseService
         return $htmls;
     }
 
-    public function brothers($navigation_pid = 0, $user_id = 0)
+    public function brotherNavs($navigation_pid = 0, $user_id = 0)
     {
-        $brothers = Navigation::where([
+        $brothers = $this->navigation->where($this->condition([
             "pid" => $navigation_pid,
-            $this->foreignKey() => $user_id,
             "status" => Consts::NORMAL
-        ])->get();
+        ], $user_id))->get();
 
-        return $this->brotherNavs($brothers);
+        return $this->brotherNavsHtml($brothers);
     }
 
-    protected function brotherNavs($brothers)
+    protected function brotherNavsHtml($brothers)
     {
         $html = '';
         if(count($brothers) > 0) {
@@ -218,18 +234,25 @@ class NavService extends AbstractBaseService
         return $html;
     }
 
-    public function parent($navigation_pid = 0, $user_id = 0)
+    /**
+     * parentNav
+     *
+     * @param $navigation_pid
+     * @param $user_id
+     *
+     * @return null
+     */
+    public function parentNav($navigation_pid = 0, $user_id = 0)
     {
         if ($navigation_pid == 0) {
             return null;
         }
-
-        $parent = Navigation::where([
+        $condition = $this->condition([
             "id" => $navigation_pid,
-            $this->foreignKey() => $user_id,
             "status" => Consts::NORMAL
-        ])->first();
+        ], $user_id);
 
+        $parent = $this->navigation->where($condition)->first();
         return $parent;
     }
 }

@@ -2,13 +2,20 @@
 
 namespace Lavamake\Lavamake\Policies;
 
+use Lavamake\Lavamake\Config\Config;
 use Lavamake\Lavamake\Contracts\LavaMakeAuth;
-use App\Models\Article;
 use Illuminate\Auth\Access\HandlesAuthorization;
 
 class ArticlePolicy
 {
     use HandlesAuthorization;
+
+    protected $config;
+
+    public function __construct(Config $config)
+    {
+        $this->config = $config;
+    }
 
     public function before(LavaMakeAuth $lavaMakerAuth)
     {
@@ -16,54 +23,80 @@ class ArticlePolicy
     }
 
     /**
-     * Determine whether the user can update the model.
+     * update
      *
-     * @param  \Lavamake\Lavamake\Contracts\LavaMakeAuth $lavaMakeAuth
-     * @param  \App\Models\Article            $article
+     * @param LavaMakeAuth $lavaMakeAuth
+     * @param              $article
      *
-     * @return \Illuminate\Auth\Access\Response|bool
+     * @return bool
      */
-    public function update(LavaMakeAuth $lavaMakeAuth, Article $article)
+    public function update(LavaMakeAuth $lavaMakeAuth, $article)
     {
-        return $lavaMakeAuth->getLMIdentifier() === $article->app_id;
+        return $lavaMakeAuth->getLMIdentifier() === $article->{$this->config->foreignKey()};
     }
 
     /**
-     * Determine whether the user can delete the model.
+     * publish
      *
-     * @param  \Lavamake\Lavamake\Contracts\LavaMakeAuth $lavaMakeAuth
-     * @param  \App\Models\Article            $article
+     * @param LavaMakeAuth $lavaMakeAuth
+     * @param              $article
      *
-     * @return \Illuminate\Auth\Access\Response|bool
+     * @return bool
      */
-    public function delete(LavaMakeAuth $lavaMakeAuth, Article $article)
+    public function publish(LavaMakeAuth $lavaMakeAuth, $article)
     {
-        return $lavaMakeAuth->getLMIdentifier() === $article->app_id;
+        return $lavaMakeAuth->getLMIdentifier() === $article->{$this->config->foreignKey()};
     }
 
     /**
-     * Determine whether the user can restore the model.
+     * draft
      *
-     * @param  \Lavamake\Lavamake\Contracts\LavaMakeAuth $lavaMakeAuth
-     * @param  \App\Models\Article            $article
+     * @param LavaMakeAuth $lavaMakeAuth
+     * @param              $article
      *
-     * @return \Illuminate\Auth\Access\Response|bool
+     * @return bool
      */
-    public function restore(LavaMakeAuth $lavaMakeAuth, Article $article)
+    public function draft(LavaMakeAuth $lavaMakeAuth, $article)
     {
-        return $lavaMakeAuth->getLMIdentifier() === $article->app_id;
+        return $lavaMakeAuth->getLMIdentifier() === $article->{$this->config->foreignKey()};
     }
 
     /**
-     * Determine whether the user can permanently delete the model.
+     * delete
      *
-     * @param  \Lavamake\Lavamake\Contracts\LavaMakeAuth $lavaMakeAuth
-     * @param  \App\Models\Article            $article
+     * @param LavaMakeAuth $lavaMakeAuth
+     * @param              $article
      *
-     * @return \Illuminate\Auth\Access\Response|bool
+     * @return bool
      */
-    public function forceDelete(LavaMakeAuth $lavaMakeAuth, Article $article)
+    public function delete(LavaMakeAuth $lavaMakeAuth, $article)
     {
-        return $lavaMakeAuth->getLMIdentifier() === $article->app_id;
+        return $lavaMakeAuth->getLMIdentifier() === $article->{$this->config->foreignKey()};
+    }
+
+    /**
+     * restore
+     *
+     * @param LavaMakeAuth $lavaMakeAuth
+     * @param              $article
+     *
+     * @return bool
+     */
+    public function restore(LavaMakeAuth $lavaMakeAuth, $article)
+    {
+        return $lavaMakeAuth->getLMIdentifier() === $article->{$this->config->foreignKey()};
+    }
+
+    /**
+     * forceDelete
+     *
+     * @param LavaMakeAuth $lavaMakeAuth
+     * @param              $article
+     *
+     * @return bool
+     */
+    public function forceDelete(LavaMakeAuth $lavaMakeAuth, $article)
+    {
+        return $lavaMakeAuth->getLMIdentifier() === $article->{$this->config->foreignKey()};
     }
 }

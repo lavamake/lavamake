@@ -3,11 +3,11 @@
 namespace App\Models;
 
 use Illuminate\Support\Facades\Cache;
-use Lavamake\Lavamake\Support\BreadcrumbsTrait;
+use Lavamake\Lavamake\Support\Traits\BreadcrumbsTrait;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
-use Lavamake\Lavamake\Support\Consts;
+use Lavamake\Lavamake\Utils\Consts;
 
 class Article extends Model
 {

@@ -4,15 +4,16 @@ namespace Lavamake\Lavamake\Facades;
 
 use Illuminate\Support\Facades\Facade;
 
+
 /**
  * @method static integer userArticleNumber()
  * @method static integer userPublishedArticleNumber()
  * @method static integer userDraftArticleNumber()
  * @method static integer userTrashedArticleNumber()
  *
- * @method static array create($request)
+ * @method static array createArticle($request)
  */
-class ArticleManage extends Facade
+class ManageNav extends Facade
 {
     /**
      * Get the registered name of the component.
@@ -21,6 +22,6 @@ class ArticleManage extends Facade
      */
     protected static function getFacadeAccessor()
     {
-        return 'lavamake.lavamake.article.manage';
+        return 'lavamake.lavamake.nav.manage';
     }
 }

@@ -3,7 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Support\Facades\Cache;
-use Lavamake\Lavamake\Support\BreadcrumbsTrait;
+use Lavamake\Lavamake\Support\Traits\BreadcrumbsTrait;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -19,9 +19,9 @@ class Navigation extends Model
         'id', '{{foreign_key}}', 'title', 'pid', 'en_title', 'type', 'link', 'sort', 'status'
     ];
 
-    public function posts()
+    public function articles()
     {
-        return $this->hasMany(Post::class);
+        return $this->hasMany(Article::class);
     }
 
     /**
