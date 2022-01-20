@@ -30,9 +30,10 @@
                 "Lavamake\\Lavamake\\Providers\\LavamakeServiceProvider"
             ],
             "aliases": {
-                "ArticleManage": "Lavamake\\Lavamake\\Facades\\ArticleManage",
-                "LavaArticle": "Lavamake\\Lavamake\\Facades\\LavaArticleWeb",
-                "LavaNav": "Lavamake\\Lavamake\\Facades\\LavaNavWeb"
+                "ManageArticle": "Lavamake\\Lavamake\\Facades\\ManageArticle",
+                "ManageNav": "Lavamake\\Lavamake\\Facades\\ManageNav",
+                "WebArticle": "Lavamake\\Lavamake\\Facades\\WebArticle",
+                "WebNav": "Lavamake\\Lavamake\\Facades\\WebNav"
             }
         }
     }

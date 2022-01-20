@@ -31,12 +31,7 @@ class LavamakeInstallCommand extends Command
         parent::__construct();
     }
 
-    /**
-     * Execute the console command.
-     *
-     * @return int
-     */
-    public function handle()
+    private function welcome()
     {
         $this->info("========================================================");
         $this->info('+     __                                      __       +');
@@ -48,14 +43,47 @@ class LavamakeInstallCommand extends Command
         $this->line('');
         $this->info('Welcome to use Lavamake!');
         $this->info('More info and documents in https://lavamake.com!');
-        $foreign_key = $this->ask('Please enter the foreign key of the tables pointing to the owner table.','user_id');
-        $this->exportArticleMigration($foreign_key);
-        $this->exportNavMigration($foreign_key);
-        $this->writeEnv($foreign_key);
-        $this->copyConfig();
-        $this->copyModels($foreign_key);
     }
 
+    private function buildForWho()
+    {
+        return $this->choice('Who is the website build for?',[
+            'single',
+            'platform'
+        ],'single');
+    }
+
+    /**
+     * Execute the console command.
+     *
+     * @return int
+     */
+    public function handle()
+    {
+
+        $this->welcome();
+
+        /**
+         *  who is the website build for?
+         */
+        $build_for_who = $this->buildForWho();
+
+        $foreign_key = $this->ask('Please enter the foreign key for the administrator table','user_id');
+
+        $this->exportArticleMigration($foreign_key);
+        $this->exportNavMigration($foreign_key);
+        $this->copyModels($foreign_key);
+        $this->writeEnv($build_for_who, $foreign_key);
+        $this->copyConfig();
+    }
+
+    /**
+     * copyModels
+     *
+     * @param $foreign_key
+     *
+     * @return void
+     */
     protected function copyModels($foreign_key)
     {
         $article_model = app_path('Models/Article.php');
@@ -78,18 +106,46 @@ class LavamakeInstallCommand extends Command
 
     }
 
+    /**
+     * compileArticleModelStub
+     *
+     * @param $foreign_key
+     *
+     * @return array|false|string|string[]
+     */
     protected function compileArticleModelStub($foreign_key)
     {
-        $content = file_get_contents(__DIR__.'/../../stubs/models/Article.stub');
-        return str_replace('{{foreign_key}}', $foreign_key, $content);
+        if($foreign_key){
+            $content = file_get_contents(__DIR__.'/../../stubs/models/Article.stub');
+            return str_replace('{{foreign_key}}', $foreign_key, $content);
+        }else{
+            return file_get_contents(__DIR__.'/../../stubs/models/Article_single.stub');
+        }
+
     }
 
+    /**
+     * compileNavigationModelStub
+     *
+     * @param $foreign_key
+     *
+     * @return array|false|string|string[]
+     */
     protected function compileNavigationModelStub($foreign_key)
     {
-        $content = file_get_contents(__DIR__.'/../../stubs/models/Navigation.stub');
-        return str_replace('{{foreign_key}}', $foreign_key, $content);
+        if($foreign_key){
+            $content = file_get_contents(__DIR__.'/../../stubs/models/Navigation.stub');
+            return str_replace('{{foreign_key}}', $foreign_key, $content);
+        }else{
+            return file_get_contents(__DIR__.'/../../stubs/models/Navigation_single.stub');
+        }
     }
 
+    /**
+     * copyConfig
+     *
+     * @return void
+     */
     protected function copyConfig()
     {
         $lavamake_path  = config_path('lavamake.php');
@@ -102,6 +158,11 @@ class LavamakeInstallCommand extends Command
         }
     }
 
+    /**
+     * getConfigSource
+     *
+     * @return false|string
+     */
     protected function getConfigSource()
     {
         return realpath(__DIR__.'/../../config/config.php');
@@ -158,26 +219,39 @@ class LavamakeInstallCommand extends Command
     /**
      * writeEnv
      *
+     * @param $build_for_who
      * @param $foreign_key
      *
      * @return void
      */
-    protected function writeEnv($foreign_key)
+    protected function writeEnv($build_for_who, $foreign_key = null)
     {
-        // LAVAMAKE_FOREIGN_KEY
+        // LAVAMAKE_BUILD_FOR
         if (file_exists($env_path = $this->envPath()) === false) {
             return;
+        }
+
+        if (Str::contains(file_get_contents($env_path), 'LAVAMAKE_BUILD_FOR') === false) {
+            // create new entry
+            file_put_contents($env_path, PHP_EOL."LAVAMAKE_BUILD_FOR=$build_for_who".PHP_EOL, FILE_APPEND);
+        } else {
+            if($this->laravel['config']['lavamake.build_for'] === $build_for_who) {
+                return;
+            }
+            // update existing entry
+            file_put_contents($env_path, str_replace(
+                'LAVAMAKE_FOREIGN_KEY='.$this->laravel['config']['lavamake.build_for'],
+                'LAVAMAKE_FOREIGN_KEY='.$build_for_who, file_get_contents($env_path)
+            ));
         }
 
         if (Str::contains(file_get_contents($env_path), 'LAVAMAKE_FOREIGN_KEY') === false) {
             // create new entry
             file_put_contents($env_path, PHP_EOL."LAVAMAKE_FOREIGN_KEY=$foreign_key".PHP_EOL, FILE_APPEND);
         } else {
-
             if($this->laravel['config']['lavamake.foreign_key'] === $foreign_key) {
                 return;
             }
-
             // update existing entry
             file_put_contents($env_path, str_replace(
                 'LAVAMAKE_FOREIGN_KEY='.$this->laravel['config']['lavamake.foreign_key'],
@@ -205,15 +279,15 @@ class LavamakeInstallCommand extends Command
     /**
      * compileNavigationMigrationStub
      *
-     * @param $main_column
+     * @param $foreign_key
      *
      * @return array|false|string|string[]
      */
-    protected function compileNavigationMigrationStub($main_column)
+    protected function compileNavigationMigrationStub($foreign_key)
     {
         return str_replace(
             '{{user_id}}',
-            $main_column,
+            $foreign_key,
             file_get_contents(__DIR__.'/../../stubs/migrations/2022_01_14_112230_create_navigations_table.stub')
         );
     }
